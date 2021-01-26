@@ -202,7 +202,7 @@ Ray Camera::generate_ray(double x, double y) const {
   // Note: hFov and vFov are in degrees.
   //
 
-  return Ray(pos, Vector3D(2 * (x - 0.5) * tan(hFov * 0.5 * (PI / 180)), 2 * (y - 0.5) * tan(vFov * 0.5 * (PI / 180)), -1).unit());
+  return Ray(pos, c2w * Vector3D(2 * (x - 0.5) * tan(hFov * 0.5 * (PI / 180)), 2 * (y - 0.5) * tan(vFov * 0.5 * (PI / 180)), -1).unit());
 }
 
 
