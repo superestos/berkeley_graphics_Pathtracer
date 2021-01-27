@@ -69,6 +69,38 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
   node->start = start;
   node->end = end;
 
+  size_t node_size = 0;
+  for (auto it = start; it != end; ++it) {
+    node_size++;
+  }
+  if (node_size < max_leaf_size) {
+    return node;
+  }
+
+  int axis = bbox.extent[1] > bbox.extent[0]? 1: 0;
+  axis = bbox.extent[2] > bbox.extent[axis]? 2: axis;
+  double mid = bbox.centroid()[axis];
+
+  auto left = new std::vector<Primitive *>();
+  auto right = new std::vector<Primitive *>();
+  for (auto it = start; it != end; ++it) {
+    if ((*it)->get_bbox().centroid()[axis] > mid) {
+      right->push_back(*it);
+    }
+    else {
+      left->push_back(*it);
+    }
+  }
+
+  if (left->size() > 0 && right->size() > 0) {
+    node->l = construct_bvh(left->begin(), left->end(), max_leaf_size);
+    node->r = construct_bvh(right->begin(), right->end(), max_leaf_size);
+  }
+  else {
+    delete left;
+    delete right;
+  }
+
   return node;
 }
 
@@ -79,24 +111,46 @@ bool BVHAccel::has_intersection(const Ray &ray, BVHNode *node) const {
   // Intersection version cannot, since it returns as soon as it finds
   // a hit, it doesn't actually have to find the closest hit.
 
-  for (auto p : primitives) {
-    total_isects++;
-    if (p->has_intersection(ray))
-      return true;
+  double t0, t1;
+  if (!node->bb.intersect(ray, t0, t1)) {
+    return false;
   }
-  return false;
+
+  if (node->isLeaf()) {
+    for (auto it = node->start; it != node->end; ++it) {
+      total_isects++;
+      if ((*it)->has_intersection(ray))
+        return true;
+    }
+
+    return false;
+  }
+  else {
+    return has_intersection(ray, node->l) || has_intersection(ray, node->r);
+  }
 }
 
 bool BVHAccel::intersect(const Ray &ray, Intersection *i, BVHNode *node) const {
   // TODO (Part 2.3):
   // Fill in the intersect function.
 
-  bool hit = false;
-  for (auto p : primitives) {
-    total_isects++;
-    hit = p->intersect(ray, i) || hit;
+  double t0, t1;
+  if (!node->bb.intersect(ray, t0, t1)) {
+    return false;
   }
-  return hit; 
+
+  bool hit = false;
+  if (node->isLeaf()) {
+    for (auto it = node->start; it != node->end; ++it) {
+      total_isects++;
+      hit = (*it)->intersect(ray, i) || hit;
+    }
+  }
+  else {
+    hit = intersect(ray, i, node->l) || hit;
+    hit = intersect(ray, i, node->r) || hit;
+  }
+  return hit;
 }
 
 } // namespace SceneObjects
