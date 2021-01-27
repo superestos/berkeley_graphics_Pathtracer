@@ -28,7 +28,9 @@ bool Triangle::has_intersection(const Ray &r) const {
   // function records the "intersection" while this function only tests whether
   // there is a intersection.
 
-  return true;
+  Intersection isect;
+
+  return intersect(r, &isect);
 }
 
 bool Triangle::intersect(const Ray &r, Intersection *isect) const {
@@ -36,6 +38,26 @@ bool Triangle::intersect(const Ray &r, Intersection *isect) const {
   // implement ray-triangle intersection. When an intersection takes
   // place, the Intersection data should be updated accordingly
 
+  auto e1 = p2 - p1;
+  auto e2 = p3 - p1;
+  auto s = r.o - p1;
+  auto s1 = cross(r.d, e2);
+  auto s2 = cross(s, e1);
+
+  double t = dot(s2, e2) / dot(s1, e1);
+  double b1 = dot(s1, s) / dot(s1, e1);
+  double b2 = dot(s2, r.d) / dot(s1, e1); 
+
+  if (b1 < 0 || b2 < 0 || b1 + b2 > 1 || t < r.min_t || t > r.max_t) {
+    return false;
+  }
+  r.max_t = t;
+  
+  isect->t = t;
+  isect->primitive = this;
+  isect->bsdf = get_bsdf();
+  isect->n = n1 + (n2 - n1) * b1 + (n3 - n1) * b2;
+  
   return true;
 }
 
