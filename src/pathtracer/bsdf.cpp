@@ -64,7 +64,7 @@ Spectrum DiffuseBSDF::sample_f(const Vector3D &wo, Vector3D *wi, float *pdf) {
   // at (wo, *wi).
   // You can use the `f` function. The reference solution only takes two lines.
   *wi = sampler.get_sample(pdf);
-  return reflectance * wi->z;
+  return reflectance;
 }
 
 //===============================================================

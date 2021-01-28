@@ -133,7 +133,7 @@ Spectrum PathTracer::one_bounce_radiance(const Ray &r,
       continue;
     }
 
-    L_out += isect_in.bsdf->get_emission() * l / pdf;
+    L_out += isect_in.bsdf->get_emission() * l * w_in.z / pdf;
   }
 
   L_out /= ns_diff;
