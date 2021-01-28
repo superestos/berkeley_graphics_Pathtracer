@@ -159,8 +159,21 @@ Spectrum PathTracer::at_least_one_bounce_radiance(const Ray &r,
   Vector3D hit_p = r.o + r.d * isect.t;
   Vector3D w_out = w2o * (-r.d);
 
-  Spectrum L_out(0, 0, 0);
+  Spectrum L_out = estimate_direct_lighting_importance(r, isect);
 
+  Vector3D w_in;
+  float pdf;
+  float cpdf = 0.6;
+
+  isect.bsdf->sample_f(w_out, &w_in, &pdf);
+  Ray ray_in(hit_p, o2w * w_in);
+  ray_in.min_t = EPS_F;
+  Intersection isect_in;
+  
+  if (coin_flip(cpdf) && bvh->intersect(ray_in, &isect_in)) {
+    L_out += at_least_one_bounce_radiance(ray_in, isect_in) * isect.bsdf->f(w_out, w_in) * w_in.z / pdf / cpdf;
+  }
+  
   return L_out;
 }
 
@@ -184,10 +197,11 @@ Spectrum PathTracer::est_radiance_global_illumination(const Ray &r) {
 
   // TODO (Part 3): Return the direct illumination.
   L_out = zero_bounce_radiance(r, isect);
-  L_out += one_bounce_radiance(r, isect);
+  //L_out += one_bounce_radiance(r, isect);
 
   // TODO (Part 4): Accumulate the "direct" and "indirect"
   // parts of global illumination into L_out rather than just direct
+  L_out += at_least_one_bounce_radiance(r, isect);
 
   return L_out;
 }
