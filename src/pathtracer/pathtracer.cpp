@@ -224,7 +224,8 @@ void PathTracer::raytrace_pixel(size_t x, size_t y) {
   // Modify your implementation to include adaptive sampling.
   // Use the command line parameters "samplesPerBatch" and "maxTolerance"
 
-  double s1, s2;
+  double s1 = 0;
+  double s2 = 0;
   int num_samples = 1;
 
   for (; num_samples <= ns_aa; num_samples++)  {
@@ -237,7 +238,7 @@ void PathTracer::raytrace_pixel(size_t x, size_t y) {
 
     spectrum = (1.0 / num_samples) * s + ((num_samples - 1.0) / num_samples) * spectrum;
 
-    if (num_samples > log(ns_aa) && num_samples > 1) {
+    if (num_samples > ns_aa / 2 && num_samples > 1) {
       auto mean = s1 / num_samples;
       auto var = (s2 - (s1 * s1 / num_samples)) / (num_samples - 1);
 
