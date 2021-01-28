@@ -50,7 +50,7 @@ Spectrum DiffuseBSDF::f(const Vector3D &wo, const Vector3D &wi) {
   // This function takes in both wo and wi and returns the evaluation of
   // the BSDF for those two directions.
 
-  return Spectrum(1.0);
+  return reflectance;
 }
 
 /**

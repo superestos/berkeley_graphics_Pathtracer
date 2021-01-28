@@ -81,12 +81,6 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
     return node;
   }
 
-  /*
-  int axis = bbox.extent[1] > bbox.extent[0]? 1: 0;
-  axis = bbox.extent[2] > bbox.extent[axis]? 2: axis;
-  double mid = bbox.centroid()[axis];
-  */
-
   mean /= node_size;
   var = (var / node_size) - (mean * mean);
 

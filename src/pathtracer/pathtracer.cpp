@@ -110,7 +110,27 @@ Spectrum PathTracer::one_bounce_radiance(const Ray &r,
   // Returns either the direct illumination by hemisphere or importance sampling
   // depending on `direct_hemisphere_sample`
 
-  return Spectrum(1.0);
+
+  Matrix3x3 o2w;
+  make_coord_space(o2w, isect.n);
+  Matrix3x3 w2o = o2w.T();
+
+  Vector3D hit_p = r.o + r.d * isect.t;
+  Vector3D w_out = w2o * (-r.d);
+
+  Spectrum L_out;
+
+  for (size_t i = 0; i < ns_diff; i++) {
+    auto w_in = hemisphereSampler->get_sample();
+    Ray ray_in(hit_p, o2w * w_in);
+    Intersection isect_in;
+    if (!bvh->intersect(ray_in, &isect_in)) {
+      continue;
+    }
+    L_out += isect_in.bsdf->get_emission() * isect.bsdf->f(w_out, w_in) * w_in.z;
+  }
+
+  return L_out;
 }
 
 Spectrum PathTracer::at_least_one_bounce_radiance(const Ray &r,
@@ -143,10 +163,11 @@ Spectrum PathTracer::est_radiance_global_illumination(const Ray &r) {
   // been implemented.
 
   // REMOVE THIS LINE when you are ready to begin Part 3.
-  //L_out = (isect.t == INF_D) ? debug_shading(r.d) : normal_shading(isect.n);
+  L_out = (isect.t == INF_D) ? debug_shading(r.d) : normal_shading(isect.n);
 
   // TODO (Part 3): Return the direct illumination.
-  return zero_bounce_radiance(r, isect);
+  //L_out = zero_bounce_radiance(r, isect);
+  //L_out += one_bounce_radiance(r, isect);
 
   // TODO (Part 4): Accumulate the "direct" and "indirect"
   // parts of global illumination into L_out rather than just direct
