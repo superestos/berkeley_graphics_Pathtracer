@@ -93,7 +93,26 @@ PathTracer::estimate_direct_lighting_importance(const Ray &r,
   const Vector3D &w_out = w2o * (-r.d);
   Spectrum L_out;
 
-  return Spectrum(1.0);
+  Vector3D light_in;
+  float distToLight, pdf;
+
+  for (auto light : scene->lights) {
+    size_t num_samples = light->is_delta_light()? 1: ns_area_light;
+    for (size_t i = 0; i < num_samples; i++) {
+      auto spec = light->sample_L(hit_p, &light_in, &distToLight, &pdf);
+      Ray ray_in(hit_p, light_in);
+      ray_in.min_t = EPS_F;
+      Intersection isect_in;
+      bvh->intersect(ray_in, &isect_in);
+
+      auto w_in = w2o * light_in;
+      if (isect_in.t > distToLight - EPS_F) {
+        L_out += spec * isect.bsdf->f(w_out, w_in) * w_in.z / pdf / num_samples;
+      }
+    }
+  }
+
+  return L_out;
 }
 
 Spectrum PathTracer::zero_bounce_radiance(const Ray &r,
@@ -174,7 +193,8 @@ Spectrum PathTracer::est_radiance_global_illumination(const Ray &r) {
 
   // TODO (Part 3): Return the direct illumination.
   L_out = zero_bounce_radiance(r, isect);
-  L_out += one_bounce_radiance(r, isect);
+  //L_out += one_bounce_radiance(r, isect);
+  L_out += estimate_direct_lighting_importance(r, isect);
 
   // TODO (Part 4): Accumulate the "direct" and "indirect"
   // parts of global illumination into L_out rather than just direct
