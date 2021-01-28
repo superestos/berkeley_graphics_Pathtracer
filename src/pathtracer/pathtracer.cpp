@@ -101,7 +101,7 @@ Spectrum PathTracer::zero_bounce_radiance(const Ray &r,
   // TODO: Part 3, Task 2
   // Returns the light that results from no bounces of light
 
-  return Spectrum(1.0);
+  return isect.bsdf->get_emission();
 }
 
 Spectrum PathTracer::one_bounce_radiance(const Ray &r,
@@ -143,9 +143,10 @@ Spectrum PathTracer::est_radiance_global_illumination(const Ray &r) {
   // been implemented.
 
   // REMOVE THIS LINE when you are ready to begin Part 3.
-  L_out = (isect.t == INF_D) ? debug_shading(r.d) : normal_shading(isect.n);
+  //L_out = (isect.t == INF_D) ? debug_shading(r.d) : normal_shading(isect.n);
 
   // TODO (Part 3): Return the direct illumination.
+  return zero_bounce_radiance(r, isect);
 
   // TODO (Part 4): Accumulate the "direct" and "indirect"
   // parts of global illumination into L_out rather than just direct
