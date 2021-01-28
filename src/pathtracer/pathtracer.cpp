@@ -69,9 +69,27 @@ PathTracer::estimate_direct_lighting_hemisphere(const Ray &r,
 
   // TODO (Part 3): Write your sampling loop here
   // TODO BEFORE YOU BEGIN
-  // UPDATE `est_radiance_global_illumination` to return direct lighting instead of normal shading 
+  // UPDATE `est_radiance_global_illumination` to return direct lighting instead of normal shading
 
-  return Spectrum(1.0);
+  float pdf;
+  Vector3D w_in;
+
+  for (size_t i = 0; i < num_samples; i++) {
+    auto l = isect.bsdf->sample_f(w_out, &w_in, &pdf);
+
+    Ray ray_in(hit_p, o2w * w_in);
+    ray_in.min_t = EPS_F;
+
+    Intersection isect_in;
+    if (!bvh->intersect(ray_in, &isect_in)) {
+      continue;
+    }
+
+    L_out += isect_in.bsdf->get_emission() * l * w_in.z / pdf;
+  }
+  L_out /= num_samples;
+
+  return L_out;
 }
 
 Spectrum
@@ -100,13 +118,13 @@ PathTracer::estimate_direct_lighting_importance(const Ray &r,
     size_t num_samples = light->is_delta_light()? 1: ns_area_light;
     for (size_t i = 0; i < num_samples; i++) {
       auto spec = light->sample_L(hit_p, &light_in, &distToLight, &pdf);
+      auto w_in = w2o * light_in;
+
       Ray ray_in(hit_p, light_in);
       ray_in.min_t = EPS_F;
       Intersection isect_in;
-      bvh->intersect(ray_in, &isect_in);
 
-      auto w_in = w2o * light_in;
-      if (isect_in.t > distToLight - EPS_F) {
+      if (!bvh->intersect(ray_in, &isect_in) || isect_in.t > distToLight - EPS_F) {
         L_out += spec * isect.bsdf->f(w_out, w_in) * w_in.z / pdf / num_samples;
       }
     }
@@ -128,35 +146,8 @@ Spectrum PathTracer::one_bounce_radiance(const Ray &r,
   // TODO: Part 3, Task 3
   // Returns either the direct illumination by hemisphere or importance sampling
   // depending on `direct_hemisphere_sample`
-
-
-  Matrix3x3 o2w;
-  make_coord_space(o2w, isect.n);
-  Matrix3x3 w2o = o2w.T();
-
-  Vector3D hit_p = r.o + r.d * isect.t;
-  Vector3D w_out = w2o * (-r.d);
-
-  Spectrum L_out;
-
-  for (size_t i = 0; i < ns_diff; i++) {
-    float pdf;
-    Vector3D w_in;
-    auto l = isect.bsdf->sample_f(w_out, &w_in, &pdf);
-
-    Ray ray_in(hit_p, o2w * w_in);
-    ray_in.min_t = EPS_F;
-
-    Intersection isect_in;
-    if (!bvh->intersect(ray_in, &isect_in)) {
-      continue;
-    }
-
-    L_out += isect_in.bsdf->get_emission() * l * w_in.z / pdf;
-  }
-
-  L_out /= ns_diff;
-  return L_out;
+  
+  return direct_hemisphere_sample? estimate_direct_lighting_hemisphere(r, isect): estimate_direct_lighting_importance(r, isect);
 }
 
 Spectrum PathTracer::at_least_one_bounce_radiance(const Ray &r,
@@ -193,8 +184,7 @@ Spectrum PathTracer::est_radiance_global_illumination(const Ray &r) {
 
   // TODO (Part 3): Return the direct illumination.
   L_out = zero_bounce_radiance(r, isect);
-  //L_out += one_bounce_radiance(r, isect);
-  L_out += estimate_direct_lighting_importance(r, isect);
+  L_out += one_bounce_radiance(r, isect);
 
   // TODO (Part 4): Accumulate the "direct" and "indirect"
   // parts of global illumination into L_out rather than just direct
