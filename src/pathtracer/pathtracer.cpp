@@ -121,15 +121,22 @@ Spectrum PathTracer::one_bounce_radiance(const Ray &r,
   Spectrum L_out;
 
   for (size_t i = 0; i < ns_diff; i++) {
-    auto w_in = hemisphereSampler->get_sample();
+    float pdf;
+    Vector3D w_in;
+    auto l = isect.bsdf->sample_f(w_out, &w_in, &pdf);
+
     Ray ray_in(hit_p, o2w * w_in);
+    ray_in.min_t = EPS_F;
+
     Intersection isect_in;
     if (!bvh->intersect(ray_in, &isect_in)) {
       continue;
     }
-    L_out += isect_in.bsdf->get_emission() * isect.bsdf->f(w_out, w_in) * w_in.z;
+
+    L_out += isect_in.bsdf->get_emission() * l / pdf;
   }
 
+  L_out /= ns_diff;
   return L_out;
 }
 
@@ -163,11 +170,11 @@ Spectrum PathTracer::est_radiance_global_illumination(const Ray &r) {
   // been implemented.
 
   // REMOVE THIS LINE when you are ready to begin Part 3.
-  L_out = (isect.t == INF_D) ? debug_shading(r.d) : normal_shading(isect.n);
+  //L_out = (isect.t == INF_D) ? debug_shading(r.d) : normal_shading(isect.n);
 
   // TODO (Part 3): Return the direct illumination.
-  //L_out = zero_bounce_radiance(r, isect);
-  //L_out += one_bounce_radiance(r, isect);
+  L_out = zero_bounce_radiance(r, isect);
+  L_out += one_bounce_radiance(r, isect);
 
   // TODO (Part 4): Accumulate the "direct" and "indirect"
   // parts of global illumination into L_out rather than just direct

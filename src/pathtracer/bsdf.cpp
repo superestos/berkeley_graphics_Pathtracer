@@ -63,8 +63,8 @@ Spectrum DiffuseBSDF::sample_f(const Vector3D &wo, Vector3D *wi, float *pdf) {
   // After sampling a value for wi, it returns the evaluation of the BSDF
   // at (wo, *wi).
   // You can use the `f` function. The reference solution only takes two lines.
-
-  return Spectrum(1.0);
+  *wi = sampler.get_sample(pdf);
+  return reflectance * wi->z;
 }
 
 //===============================================================
