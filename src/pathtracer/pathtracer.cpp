@@ -213,18 +213,41 @@ void PathTracer::raytrace_pixel(size_t x, size_t y) {
   // through the scene. Return the average Spectrum.
   // You should call est_radiance_global_illumination in this function.
   Spectrum spectrum;
-
+  /*
   for (size_t i = 0; i < ns_aa; i++) {
     auto sample = gridSampler->get_sample();
     auto ray = camera->generate_ray((x + sample.x) / sampleBuffer.w, (y + sample.y) / sampleBuffer.h);
     spectrum += est_radiance_global_illumination(ray) / ns_aa;
   }
-
+  */
   // TODO (Part 5):
   // Modify your implementation to include adaptive sampling.
   // Use the command line parameters "samplesPerBatch" and "maxTolerance"
 
-  int num_samples = ns_aa;          // total samples to evaluate
+  double s1, s2;
+  int num_samples = 1;
+
+  for (; num_samples <= ns_aa; num_samples++)  {
+    auto sample = gridSampler->get_sample();
+    auto ray = camera->generate_ray((x + sample.x) / sampleBuffer.w, (y + sample.y) / sampleBuffer.h);
+    auto s = est_radiance_global_illumination(ray);
+    double illum = s.illum();
+    s1 += illum;
+    s2 += illum * illum;
+
+    spectrum = (1.0 / num_samples) * s + ((num_samples - 1.0) / num_samples) * spectrum;
+
+    if (num_samples > log(ns_aa) && num_samples > 1) {
+      auto mean = s1 / num_samples;
+      auto var = (s2 - (s1 * s1 / num_samples)) / (num_samples - 1);
+
+      if (maxTolerance * mean >= confidence * sqrt(var / num_samples)) {
+        break;
+      }
+    }
+  }
+
+  //int num_samples = ns_aa;          // total samples to evaluate
   Vector2D origin = Vector2D(x, y); // bottom left corner of the pixel
 
   sampleBuffer.update_pixel(spectrum, x, y);

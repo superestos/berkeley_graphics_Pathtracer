@@ -77,6 +77,7 @@ namespace CGL {
 
         size_t samplesPerBatch;
         float maxTolerance;
+        double confidence = 1.96;
         bool direct_hemisphere_sample; ///< true if sampling uniformly from hemisphere for direct lighting. Otherwise, light sample
 
         // Components //
