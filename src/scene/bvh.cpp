@@ -59,27 +59,40 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
   // primitives.
 
   BBox bbox;
+  size_t node_size = 1;
+  Vector3D mean;
+  Vector3D var;
 
-  for (auto p = start; p != end; p++) {
-    BBox bb = (*p)->get_bbox();
+  for (auto it = start; it != end; it++) {
+    BBox bb = (*it)->get_bbox();
     bbox.expand(bb);
+
+    auto centroid = bb.centroid();
+    mean += centroid;
+    var += centroid * centroid;
+    node_size++;
   }
 
   BVHNode *node = new BVHNode(bbox);
   node->start = start;
   node->end = end;
 
-  size_t node_size = 0;
-  for (auto it = start; it != end; ++it) {
-    node_size++;
-  }
-  if (node_size < max_leaf_size) {
+  if (node_size <= max_leaf_size) {
     return node;
   }
 
+  /*
   int axis = bbox.extent[1] > bbox.extent[0]? 1: 0;
   axis = bbox.extent[2] > bbox.extent[axis]? 2: axis;
   double mid = bbox.centroid()[axis];
+  */
+
+  mean /= node_size;
+  var = (var / node_size) - (mean * mean);
+
+  int axis = var[1] > var[0]? 1 : 0;
+  axis = var[2] > var[axis]? 2: axis;
+  double mid = mean[axis];
 
   auto left = new std::vector<Primitive *>();
   auto right = new std::vector<Primitive *>();
